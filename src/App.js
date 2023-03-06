@@ -1,17 +1,17 @@
 import "./App.css";
 import { useEffect, useReducer } from "react";
 import { API } from "aws-amplify";
-import { List, Input, Button } from "antd";
+import { List, Input, Button, Avatar, Badge, Space, Divider } from "antd";
+import { ClockCircleOutlined } from "@ant-design/icons";
 // import "antd.css";
 import { listNotes } from "./graphql/queries";
 import { v4 as uuid } from "uuid";
-import { onCreateNote } from './graphql/subscriptions'
+import { onCreateNote } from "./graphql/subscriptions";
 import {
 	createNote as CreateNote,
 	deleteNote as DeleteNote,
 	updateNote as UpdateNote,
 } from "./graphql/mutations";
-
 
 const CLIENT_ID = uuid();
 
@@ -117,6 +117,44 @@ const App = () => {
 			console.error(err);
 		}
 	};
+
+	const completedNoteAmmount = async (note) => {
+		const index = state.notes.findIndex((n) => n.id === note.id);
+		const notes = [...state.notes];
+		notes[index].completed = !note.completed.length;
+		dispatch({ type: "SET_NOTES", notes });
+		try {
+			await API.graphql({
+				query: UpdateNote,
+				variables: {
+					input: { id: note.id, completed: notes[index].completed },
+				},
+			});
+			console.log("note successfully updated!");
+		} catch (err) {
+			console.error(err);
+		}
+	};
+
+	const totalNoteAmmount = async (note) => {
+		const index = state.notes.findIndex((n) => n.id === note.id);
+		const notes = [...state.notes];
+		notes[index].completed = !note.completed.length;
+		dispatch({ type: "SET_NOTES", notes });
+		try {
+			await API.graphql({
+				query: UpdateNote,
+				variables: {
+					input: { id: note.id, completed: notes[index].completed },
+				},
+			});
+			console.log("note successfully updated!");
+		} catch (err) {
+			console.error(err);
+		}
+	};
+
+
 	const onChange = (e) => {
 		dispatch({
 			type: "SET_INPUT",
@@ -143,7 +181,7 @@ const App = () => {
 		container: { padding: 20 },
 		input: { marginBottom: 10 },
 		item: { textAlign: "left" },
-		p: { color: "#1890ff" },
+		
 	};
 
 	const renderItem = (item) => {
@@ -151,12 +189,17 @@ const App = () => {
 			<List.Item
 				style={styles.item}
 				actions={[
-					<p style={styles.p} onClick={() => deleteNote(item)}>
-						Delete
-					</p>,
-					<p style={styles.p} onClick={() => updateNote(item)}>
-						{item.completed ? "completed" : "mark completed"}
-					</p>,
+					<>
+						<Button danger  type="link" onClick={() => deleteNote(item)}>Delete</Button>
+						{/* <p style={styles.p} onClick={() => deleteNote(item)}>
+							Delete
+						</p> */}
+						
+						<Button type="link"  onClick={() => updateNote(item)}>
+							{item.completed ? "completed" : "mark completed"}
+						</Button>
+						
+					</>
 				]}>
 				<List.Item.Meta
 					title={item.name}
@@ -166,8 +209,14 @@ const App = () => {
 		);
 	};
 
+
 	return (
 		<div style={styles.container}>
+			{/* <Space size="middle">
+				<Badge count={5}>
+					<Avatar shape="square" size="large" />
+				</Badge>
+			</Space> */}
 			<Input
 				onChange={onChange}
 				value={state.form.name}
@@ -185,6 +234,9 @@ const App = () => {
 			<Button onClick={createNote} type="primary">
 				Create Note
 			</Button>
+			<Divider>
+				{completedNoteAmmount} completed <Divider type="vertical" /> {totalNoteAmmount} total
+			</Divider>
 			<List
 				loading={state.loading}
 				dataSource={state.notes}
