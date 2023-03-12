@@ -21,6 +21,7 @@ const initialState = {
 	error: false,
 	form: { name: "", description: "" },
 };
+
 const reducer = (state, action) => {
 	switch (action.type) {
 		case "SET_NOTES":
@@ -40,6 +41,7 @@ const reducer = (state, action) => {
 			return { ...state };
 	}
 };
+
 const App = () => {
 	const [state, dispatch] = useReducer(reducer, initialState);
 
