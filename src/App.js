@@ -120,41 +120,41 @@ const App = () => {
 		}
 	};
 
-	const completedNoteAmmount = async (note) => {
-		const index = state.notes.findIndex((n) => n.id === note.id);
-		const notes = [...state.notes];
-		notes[index].completed = !note.completed.length;
-		dispatch({ type: "SET_NOTES", notes });
-		try {
-			await API.graphql({
-				query: UpdateNote,
-				variables: {
-					input: { id: note.id, completed: notes[index].completed },
-				},
-			});
-			console.log("note successfully updated!");
-		} catch (err) {
-			console.error(err);
-		}
-	};
+	// const completedNoteAmmount = async ({id}) => {
+	// 	const index = state.button.findIndex((n) => n.id === id);
+	// 	const buttons = [
+	// 		...state.buttons.slice(0, index), 
+	// 		...state.buttons.slice(index + 1),
+	// 	];
+	// 	dispatch({ type: "SET_NOTES", buttons });
+	// 	try {
+	// 		await API.graphql({
+	// 			query: UpdateNote,
+	// 			variables: { input: { id } },
+	// 		});
+	// 		console.log("successfully completed note!");
+	// 	} catch (err) {
+	// 		console.error(err);
+	// 	}
+	// };
 
-	const totalNoteAmmount = async (note) => {
-		const index = state.notes.findIndex((n) => n.id === note.id);
-		const notes = [...state.notes];
-		notes[index].completed = !note.completed.length;
-		dispatch({ type: "SET_NOTES", notes });
-		try {
-			await API.graphql({
-				query: UpdateNote,
-				variables: {
-					input: { id: note.id, completed: notes[index].completed },
-				},
-			});
-			console.log("note successfully updated!");
-		} catch (err) {
-			console.error(err);
-		}
-	};
+	// const totalNoteAmmount = async (note) => {
+	// 	const index = state.notes.findIndex((n) => n.id === note.id);
+	// 	const notes = [...state.notes];
+	// 	notes[index].completed = !note.completed;
+	// 	dispatch({ type: "SET_NOTES", notes });
+	// 	try {
+	// 		await API.graphql({
+	// 			query: UpdateNote,
+	// 			variables: {
+	// 				input: { id: note.id, completed: notes[index].completed },
+	// 			},
+	// 		});
+	// 		console.log("note successfully completed!");
+	// 	} catch (err) {
+	// 		console.error(err);
+	// 	}
+	// };
 
 
 	const onChange = (e) => {
@@ -192,13 +192,13 @@ const App = () => {
 				style={styles.item}
 				actions={[
 					<>
-						<Button danger  type="link" onClick={() => deleteNote(item)}>Delete</Button>
+						<Button danger type="link" onClick={() => deleteNote(item)}>Delete</Button>
 						{/* <p style={styles.p} onClick={() => deleteNote(item)}>
 							Delete
 						</p> */}
 						
-						<Button type="link"  onClick={() => updateNote(item)}>
-							{item.completed ? "completed" : "mark completed"}
+						<Button id="CompleteButton" type="link"  onClick={() => updateNote(item)}>
+							{item.completed ? "mark incompleted" : "mark complete"}
 						</Button>
 						
 					</>
@@ -236,9 +236,13 @@ const App = () => {
 			<Button onClick={createNote} type="primary">
 				Create Note
 			</Button>
+
 			<Divider>
-				{completedNoteAmmount} completed <Divider type="vertical" /> {totalNoteAmmount} total
+				{updateNote.length} completed 
+				<Divider type="vertical" /> 
+				{updateNote.length} total
 			</Divider>
+			
 			<List
 				loading={state.loading}
 				dataSource={state.notes}
