@@ -120,43 +120,6 @@ const App = () => {
 		}
 	};
 
-	// const completedNoteAmmount = async ({id}) => {
-	// 	const index = state.button.findIndex((n) => n.id === id);
-	// 	const buttons = [
-	// 		...state.buttons.slice(0, index), 
-	// 		...state.buttons.slice(index + 1),
-	// 	];
-	// 	dispatch({ type: "SET_NOTES", buttons });
-	// 	try {
-	// 		await API.graphql({
-	// 			query: UpdateNote,
-	// 			variables: { input: { id } },
-	// 		});
-	// 		console.log("successfully completed note!");
-	// 	} catch (err) {
-	// 		console.error(err);
-	// 	}
-	// };
-
-	// const totalNoteAmmount = async (note) => {
-	// 	const index = state.notes.findIndex((n) => n.id === note.id);
-	// 	const notes = [...state.notes];
-	// 	notes[index].completed = !note.completed;
-	// 	dispatch({ type: "SET_NOTES", notes });
-	// 	try {
-	// 		await API.graphql({
-	// 			query: UpdateNote,
-	// 			variables: {
-	// 				input: { id: note.id, completed: notes[index].completed },
-	// 			},
-	// 		});
-	// 		console.log("note successfully completed!");
-	// 	} catch (err) {
-	// 		console.error(err);
-	// 	}
-	// };
-
-
 	const onChange = (e) => {
 		dispatch({
 			type: "SET_INPUT",
