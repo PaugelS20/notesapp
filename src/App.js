@@ -1,12 +1,10 @@
 import "./App.css";
 import { useEffect, useReducer } from "react";
 import { API } from "aws-amplify";
-import { List, Input, Button, Avatar, Badge, Space, Divider } from "antd";
-import { ClockCircleOutlined } from "@ant-design/icons";
-// import "antd.css";
+import { List, Input, Button, Divider } from "antd";
 import { listNotes } from "./graphql/queries";
 import { v4 as uuid } from "uuid";
-import { onCreateNote } from "./graphql/subscriptions";
+import { onCreateNote, onUpdateNote } from "./graphql/subscriptions";
 import {
 	createNote as CreateNote,
 	deleteNote as DeleteNote,
@@ -24,6 +22,8 @@ const initialState = {
 
 const reducer = (state, action) => {
 	switch (action.type) {
+		case "ADD_EXCLAMATION":
+			return{ ...state, notes: action.notes[" +!"]};
 		case "SET_NOTES":
 			return { ...state, notes: action.notes, loading: false };
 		case "ADD_NOTE":
@@ -89,7 +89,7 @@ const App = () => {
 		const notes = [
 			...state.notes.slice(0, index), // TODO add a filter
 			...state.notes.slice(index + 1),
-		];
+		]; //.filter(notes => notes[index].completed = notes.completed).map(notes)
 		dispatch({ type: "SET_NOTES", notes });
 		try {
 			await API.graphql({
@@ -105,19 +105,27 @@ const App = () => {
 	const updateNote = async (note) => {
 		const index = state.notes.findIndex((n) => n.id === note.id);
 		const notes = [...state.notes];
+		console.log(notes);
 		notes[index].completed = !note.completed;
+		console.log(notes[index].completed);
+
 		dispatch({ type: "SET_NOTES", notes });
 		try {
 			await API.graphql({
 				query: UpdateNote,
 				variables: {
-					input: { id: note.id, completed: notes[index].completed },
+					input: { 
+						id: note.id, 
+						completed: notes[index].completed 
+					},
 				},
 			});
 			console.log("note successfully updated!");
 		} catch (err) {
 			console.error(err);
 		}
+		// let count = filter(notes).length;
+		// console.log(count);
 	};
 
 	const onChange = (e) => {
@@ -131,10 +139,27 @@ const App = () => {
 	useEffect(() => {
 		fetchNotes();
 		const subscription = API.graphql({
+			query: onUpdateNote,
+		}).subscribe({
+			next: (noteData) => {
+				const note = noteData.value.data.onUpdateNote;
+				console.log(noteData);
+				if (CLIENT_ID === note.completed) return //<p>{noteData.value.data.note}</p>;
+				console.log(CLIENT_ID);
+				dispatch({ type: "COMPLETE_NOTES", note });
+			},
+		});
+		return () => subscription.unsubscribe();
+	}, []);
+	
+	useEffect(() => {
+		fetchNotes();
+		const subscription = API.graphql({
 			query: onCreateNote,
 		}).subscribe({
 			next: (noteData) => {
 				const note = noteData.value.data.onCreateNote;
+				console.log(noteData);
 				if (CLIENT_ID === note.clientId) return;
 				dispatch({ type: "ADD_NOTE", note });
 			},
@@ -146,7 +171,6 @@ const App = () => {
 		container: { padding: 20 },
 		input: { marginBottom: 10 },
 		item: { textAlign: "left" },
-		
 	};
 
 	const renderItem = (item) => {
@@ -155,16 +179,33 @@ const App = () => {
 				style={styles.item}
 				actions={[
 					<>
-						<Button danger type="link" onClick={() => deleteNote(item)}>Delete</Button>
+						<Button
+							danger
+							type="link"
+							onClick={() => deleteNote(item)}>
+							Delete
+						</Button>
 						{/* <p style={styles.p} onClick={() => deleteNote(item)}>
 							Delete
 						</p> */}
-						
-						<Button id="CompleteButton" type="link"  onClick={() => updateNote(item)}>
-							{item.completed ? "mark incompleted" : "mark complete"}
+
+						<Button
+							id="CompleteButton"
+							type="link"
+							onClick={() => updateNote(item)}>
+							{item.completed
+								? "mark incompleted"
+								: "mark complete"}
 						</Button>
-						
-					</>
+
+						<Button
+							type="link"
+							onClick={() => updateNote(item)}>
+							{item.completed
+								? "mark incompleted"
+								: "mark complete"}
+						</Button>
+					</>,
 				]}>
 				<List.Item.Meta
 					title={item.name}
@@ -174,14 +215,8 @@ const App = () => {
 		);
 	};
 
-
 	return (
 		<div style={styles.container}>
-			{/* <Space size="middle">
-				<Badge count={5}>
-					<Avatar shape="square" size="large" />
-				</Badge>
-			</Space> */}
 			<Input
 				onChange={onChange}
 				value={state.form.name}
@@ -201,11 +236,11 @@ const App = () => {
 			</Button>
 
 			<Divider>
-				{updateNote.length} completed 
-				<Divider type="vertical" /> 
-				{updateNote.length} total
+				{} completed
+				<Divider type="vertical" />
+				{updateNote} total
 			</Divider>
-			
+
 			<List
 				loading={state.loading}
 				dataSource={state.notes}
