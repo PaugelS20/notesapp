@@ -22,8 +22,8 @@ const initialState = {
 
 const reducer = (state, action) => {
 	switch (action.type) {
-		case "ADD_EXCLAMATION":
-			return{ ...state, notes: action.notes[" +!"]};
+		// case "ADD_EXCLAMATION":
+		// 	return { ...state, notes: action.notes[note].filter(x.note == completed) };
 		case "SET_NOTES":
 			return { ...state, notes: action.notes, loading: false };
 		case "ADD_NOTE":
@@ -70,7 +70,9 @@ const App = () => {
 			clientId: CLIENT_ID,
 			completed: false,
 			id: uuid(),
-		};
+		}
+		// state.map(x.note = note.completed);
+
 		dispatch({ type: "ADD_NOTE", note });
 		dispatch({ type: "RESET_FORM" });
 		try {
@@ -105,7 +107,7 @@ const App = () => {
 	const updateNote = async (note) => {
 		const index = state.notes.findIndex((n) => n.id === note.id);
 		const notes = [...state.notes];
-		console.log(notes);
+		// console.log(notes);
 		notes[index].completed = !note.completed;
 		console.log(notes[index].completed);
 
@@ -114,9 +116,9 @@ const App = () => {
 			await API.graphql({
 				query: UpdateNote,
 				variables: {
-					input: { 
-						id: note.id, 
-						completed: notes[index].completed 
+					input: {
+						id: note.id,
+						completed: notes[index],
 					},
 				},
 			});
@@ -124,8 +126,6 @@ const App = () => {
 		} catch (err) {
 			console.error(err);
 		}
-		// let count = filter(notes).length;
-		// console.log(count);
 	};
 
 	const onChange = (e) => {
@@ -144,14 +144,14 @@ const App = () => {
 			next: (noteData) => {
 				const note = noteData.value.data.onUpdateNote;
 				console.log(noteData);
-				if (CLIENT_ID === note.completed) return //<p>{noteData.value.data.note}</p>;
+				if (CLIENT_ID === note.completed) return; //<p>{noteData.value.data.note}</p>;
 				console.log(CLIENT_ID);
 				dispatch({ type: "COMPLETE_NOTES", note });
 			},
 		});
 		return () => subscription.unsubscribe();
 	}, []);
-	
+
 	useEffect(() => {
 		fetchNotes();
 		const subscription = API.graphql({
@@ -198,12 +198,11 @@ const App = () => {
 								: "mark complete"}
 						</Button>
 
-						<Button
-							type="link"
-							onClick={() => updateNote(item)}>
-							{item.completed
-								? "mark incompleted"
-								: "mark complete"}
+						<Button 
+							type="link" 
+							onClick={() => updateNote(item)}
+						>
+							{item.completed ? "-!" : "+!"}
 						</Button>
 					</>,
 				]}>
@@ -236,7 +235,7 @@ const App = () => {
 			</Button>
 
 			<Divider>
-				{} completed
+				{ } completed
 				<Divider type="vertical" />
 				{updateNote} total
 			</Divider>
