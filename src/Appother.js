@@ -1,10 +1,10 @@
 import "./App.css";
 import { useEffect, useReducer } from "react";
 import { API } from "aws-amplify";
-import { List, Input, Button, Divider } from "antd";
 import { listNotes } from "./graphql/queries";
 import { v4 as uuid } from "uuid";
-import { onCreateNote, onUpdateNote, onDeleteNote } from "./graphql/subscriptions";
+import { List, Input, Button, Divider } from "antd";
+import { onCreateNote } from "./graphql/subscriptions";
 import {
 	createNote as CreateNote,
 	deleteNote as DeleteNote,
@@ -13,18 +13,17 @@ import {
 
 const CLIENT_ID = uuid();
 
+// set initial state
 const initialState = {
 	notes: [],
 	loading: true,
 	error: false,
-	form: { name: "", description: ""},
-	exclamationClicked: false
+	form: { name: "", description: "" },
+	exclamationClicked: false,
 };
 
 const reducer = (state, action) => {
 	switch (action.type) {
-		// case "ADD_EXCLAMATION":
-		// 	return { ...state, notes: action.notes[note].filter(x.note == completed) };
 		case "SET_NOTES":
 			return { ...state, notes: action.notes, loading: false };
 		case "ADD_NOTE":
@@ -61,8 +60,9 @@ const App = () => {
 		}
 	};
 
+	// create note
 	const createNote = async () => {
-		const { form } = state; // destructuring - form element out of state
+		const { form } = state;
 		if (!form.name || !form.description) {
 			return alert("please enter a name and description");
 		}
@@ -71,8 +71,7 @@ const App = () => {
 			clientId: CLIENT_ID,
 			completed: false,
 			id: uuid(),
-		}
-		// state.map(x.note = note.completed);
+		};
 		dispatch({ type: "ADD_NOTE", note });
 		dispatch({ type: "RESET_FORM" });
 		try {
@@ -86,12 +85,12 @@ const App = () => {
 		}
 	};
 
+	// delete note
 	const deleteNote = async ({ id }) => {
 		const index = state.notes.findIndex((n) => n.id === id);
 		const notes = [
-			...state.notes.slice(0, index), // TODO add a filter
+			...state.notes.slice(0, index),
 			...state.notes.slice(index + 1),
-			// ...state.notes.filter((n) => n.completed).length
 		];
 		dispatch({ type: "SET_NOTES", notes });
 		try {
@@ -101,23 +100,23 @@ const App = () => {
 			});
 			console.log("successfully deleted note!");
 		} catch (err) {
-			console.error(err);
+			console.error({ err });
 		}
 	};
 
+	// update note
 	const updateNote = async (note) => {
 		const index = state.notes.findIndex((n) => n.id === note.id);
 		const notes = [...state.notes];
 		notes[index].completed = !note.completed;
 		dispatch({ type: "SET_NOTES", notes });
-		
 		try {
 			await API.graphql({
 				query: UpdateNote,
 				variables: {
 					input: {
 						id: note.id,
-						completed: notes[index],
+						completed: notes[index].completed,
 					},
 				},
 			});
@@ -126,24 +125,15 @@ const App = () => {
 			console.error(err);
 		}
 	};
-	
-	// adding ! to note
-	const excitingNote = async(item) => {
-		const notes = [...state.notes];
-		const index = notes.findIndex((n) => n.id == item.id);
-        const excitingNote = {
-			name: item.name + "!", 
-			description: item.description,
-			completed: item.completed  
-  
-		};
-        notes[index] = excitingNote;
+    
+    const onAddExclamationClick = () => {
+        const notes = [...state.notes];
+        const index = notes.findIndex((n) => n.id === item.id);
+        const updatedNote = { ...item, name: item.name + "!" };
+        notes[index] = updatedNote;
         dispatch({ type: "SET_NOTES", notes });
-	}
+    };
 
-	const completedNotes = state.notes.filter((n) => n.completed).length;
-	const totalNotes = state.notes.length;
-	console.log(totalNotes);
 
 	const onChange = (e) => {
 		dispatch({
@@ -160,7 +150,6 @@ const App = () => {
 		}).subscribe({
 			next: (noteData) => {
 				const note = noteData.value.data.onCreateNote;
-				console.log(noteData);
 				if (CLIENT_ID === note.clientId) return;
 				dispatch({ type: "ADD_NOTE", note });
 			},
@@ -168,75 +157,39 @@ const App = () => {
 		return () => subscription.unsubscribe();
 	}, []);
 
-	useEffect(() => {
-		fetchNotes();
-		const subscription = API.graphql({
-			query: onUpdateNote,
-		}).subscribe({
-			next: (noteData) => {
-				const note = noteData.value.data.onUpdateNote;
-				console.log(noteData);
-				if (CLIENT_ID === note.name + "!") return;
-				dispatch({ type: "SET_NOTES", note });
-			},
-		});
-		return () => subscription.unsubscribe();
-	}, []);
-
-	useEffect(() => {
-		fetchNotes();
-		const subscription = API.graphql({
-			query: onDeleteNote,
-		}).subscribe({
-			next: (noteData) => {
-				const note = noteData.value.data.onDeleteNote;
-				console.log(noteData.value);
-				if (CLIENT_ID === note.name + "!") return;
-				dispatch({ type:"DELETE_NOTES", note });
-			},
-		});
-		return () => subscription.unsubscribe();
-	}, []);
-
-
 	const styles = {
 		container: { padding: 20 },
 		input: { marginBottom: 10 },
 		item: { textAlign: "left" },
 	};
 
+	const completed = state.notes.filter((n) => n.completed).length;
+	const total = state.notes.length;
+
+	// render items on page
 	const renderItem = (item) => {
+
 		return (
 			<List.Item
 				style={styles.item}
 				actions={[
-					<>
-						<Button
-							danger
-							type="link"
-							onClick={() => deleteNote(item)}>
-							Delete
-						</Button>
-						{/* <p style={styles.p} onClick={() => deleteNote(item)}>
-							Delete
-						</p> */}
-
-						<Button
+					<Button 
+                        danger 
+                        type="link" 
+                        onClick={() => deleteNote(item)}>
+						Delete
+					</Button>,
+					
+                    <Button
 							id="CompleteButton"
 							type="link"
 							onClick={() => updateNote(item)}>
 							{item.completed
 								? "mark incompleted"
 								: "mark complete"}
-						</Button>
-
-						<Button 
-							type="link" 
-							onClick={() => excitingNote(item)}
-						>
-							+!
-						</Button>
-					</>,
+					</Button>,
+					
+                    <Button onClick={onAddExclamationClick}>+!</Button>,
 				]}>
 				<List.Item.Meta
 					title={item.name}
@@ -266,13 +219,14 @@ const App = () => {
 				Create Note
 			</Button>
 
+			
 			<Divider>
-				{ completedNotes } completed
+				{ completed } completed
 				<Divider type="vertical" />
-				{ totalNotes } total
+				{ total } total
 			</Divider>
-
-			<List
+		
+        	<List
 				loading={state.loading}
 				dataSource={state.notes}
 				renderItem={renderItem}
