@@ -4,7 +4,11 @@ import { API } from "aws-amplify";
 import { List, Input, Button, Divider } from "antd";
 import { listNotes } from "./graphql/queries";
 import { v4 as uuid } from "uuid";
-import { onCreateNote, onUpdateNote, onDeleteNote } from "./graphql/subscriptions";
+import {
+	onCreateNote,
+	onUpdateNote,
+	onDeleteNote,
+} from "./graphql/subscriptions";
 import {
 	createNote as CreateNote,
 	deleteNote as DeleteNote,
@@ -17,27 +21,64 @@ const initialState = {
 	notes: [],
 	loading: true,
 	error: false,
-	form: { name: "", description: ""},
-	exclamationClicked: false
+	form: { name: "", description: "" },
+	// exclamationClicked: false,
 };
 
 const reducer = (state, action) => {
+	const notes = [...state.notes];
+	const index = notes.findIndex((n) => n.id == action.id);
+
 	switch (action.type) {
-		// case "ADD_EXCLAMATION":
-		// 	return { ...state, notes: action.notes[note].filter(x.note == completed) };
 		case "SET_NOTES":
 			return { ...state, notes: action.notes, loading: false };
+
 		case "ADD_NOTE":
 			return { ...state, notes: [action.note, ...state.notes] };
+
 		case "RESET_FORM":
 			return { ...state, form: initialState.form };
+
 		case "SET_INPUT":
 			return {
 				...state,
 				form: { ...state.form, [action.name]: action.value },
 			};
+
+		case "UPDATE_NOTE":
+			// const notes = [...state.notes];
+			// const index = notes.findIndex((n) => n.id == action.id);
+			if (CLIENT_ID === index.clientId) return;
+			notes[index].completed = !notes.completed;
+			return { ...state, notes, note: action.item };
+
+		case "ADD_EXCLAMATION":
+			return {
+				...state,
+				notes: action.notes,
+				loading: false,
+				important: true,
+			};
+
+		case "EXCLIMATION_NOTE":
+			// const noteS = [...state.notes];
+			// const x = noteS.findIndex((n) => n.id == action.id);
+			// if (CLIENT_ID === index.clientId) return;
+			// notes[index].name = !notes.name;
+			return { ...state, notes: action.notes, loading: false,  };
+
+		case "DELETE_NOTE":
+			const i = state.notes.findIndex((n) => n.id == action.id);
+
+			const newNotes = [
+				...state.notes.slice(0, i),
+				...state.notes.slice(i + 1),
+			];
+			return { ...state, notes: newNotes };
+
 		case "ERROR":
 			return { ...state, loading: false, error: true };
+
 		default:
 			return { ...state };
 	}
@@ -71,7 +112,7 @@ const App = () => {
 			clientId: CLIENT_ID,
 			completed: false,
 			id: uuid(),
-		}
+		};
 		// state.map(x.note = note.completed);
 		dispatch({ type: "ADD_NOTE", note });
 		dispatch({ type: "RESET_FORM" });
@@ -110,14 +151,13 @@ const App = () => {
 		const notes = [...state.notes];
 		notes[index].completed = !note.completed;
 		dispatch({ type: "SET_NOTES", notes });
-		
 		try {
 			await API.graphql({
 				query: UpdateNote,
 				variables: {
 					input: {
 						id: note.id,
-						completed: notes[index],
+						completed: notes[index].completed,
 					},
 				},
 			});
@@ -126,24 +166,29 @@ const App = () => {
 			console.error(err);
 		}
 	};
-	
+
+	const makeImportant = (item) => {
+		const notes = [...state.notes];
+		const index = state.notes.findIndex((n) => n.id === item.id);
+		const importantNote = { name: item.name + "!!" };
+		notes[index] = importantNote;
+		dispatch({ type: "ADD_EXCLAMATION", notes });
+	};
+
 	// adding ! to note
-	const excitingNote = async(item) => {
+	const excitingNote = async (item) => {
 		const notes = [...state.notes];
 		const index = notes.findIndex((n) => n.id == item.id);
-        const excitingNote = {
-			name: item.name + "!", 
+		const excitingNote = {
+			name: item.name + "!",
 			description: item.description,
-			completed: item.completed  
-  
 		};
-        notes[index] = excitingNote;
-        dispatch({ type: "SET_NOTES", notes });
-	}
+		notes[index] = excitingNote;
+		dispatch({ type: "EXCLIMATION_NOTE", notes });
+	};
 
 	const completedNotes = state.notes.filter((n) => n.completed).length;
 	const totalNotes = state.notes.length;
-	console.log(totalNotes);
 
 	const onChange = (e) => {
 		dispatch({
@@ -155,49 +200,52 @@ const App = () => {
 
 	useEffect(() => {
 		fetchNotes();
-		const subscription = API.graphql({
+
+		const createSubscription = API.graphql({
 			query: onCreateNote,
 		}).subscribe({
 			next: (noteData) => {
 				const note = noteData.value.data.onCreateNote;
-				console.log(noteData);
 				if (CLIENT_ID === note.clientId) return;
 				dispatch({ type: "ADD_NOTE", note });
 			},
 		});
-		return () => subscription.unsubscribe();
-	}, []);
 
-	useEffect(() => {
-		fetchNotes();
-		const subscription = API.graphql({
+		const updateSubscription = API.graphql({
 			query: onUpdateNote,
 		}).subscribe({
 			next: (noteData) => {
-				const note = noteData.value.data.onUpdateNote;
-				console.log(noteData);
-				if (CLIENT_ID === note.name + "!") return;
-				dispatch({ type: "SET_NOTES", note });
+				const note = noteData.value.data.onUpdateNote.id;
+				dispatch({ type: "UPDATE_NOTE", id: note });
 			},
 		});
-		return () => subscription.unsubscribe();
-	}, []);
 
-	useEffect(() => {
-		fetchNotes();
-		const subscription = API.graphql({
+		const updateExclimationSubscription = API.graphql({
+			query: onUpdateNote,
+		}).subscribe({
+			next: (noteData) => {
+				const note = noteData.value.data.onUpdateNote.name;
+				console.log(note);
+				dispatch({ type: "SET_NOTES", name: note.name });
+			},
+		});
+
+		const deleteSubscription = API.graphql({
 			query: onDeleteNote,
 		}).subscribe({
 			next: (noteData) => {
-				const note = noteData.value.data.onDeleteNote;
-				console.log(noteData.value);
-				if (CLIENT_ID === note.name + "!") return;
-				dispatch({ type:"DELETE_NOTES", note });
+				const noteId = noteData.value.data.onDeleteNote.id;
+				dispatch({ type: "DELETE_NOTE", id: noteId });
 			},
 		});
-		return () => subscription.unsubscribe();
-	}, []);
 
+		return () => {
+			createSubscription.unsubscribe();
+			updateSubscription.unsubscribe();
+			deleteSubscription.unsubscribe();
+			updateExclimationSubscription.unsubscribe();
+		};
+	}, []);
 
 	const styles = {
 		container: { padding: 20 },
@@ -217,9 +265,6 @@ const App = () => {
 							onClick={() => deleteNote(item)}>
 							Delete
 						</Button>
-						{/* <p style={styles.p} onClick={() => deleteNote(item)}>
-							Delete
-						</p> */}
 
 						<Button
 							id="CompleteButton"
@@ -230,10 +275,7 @@ const App = () => {
 								: "mark complete"}
 						</Button>
 
-						<Button 
-							type="link" 
-							onClick={() => excitingNote(item)}
-						>
+						<Button type="link" onClick={() => excitingNote(item)}>
 							+!
 						</Button>
 					</>,
@@ -267,9 +309,9 @@ const App = () => {
 			</Button>
 
 			<Divider>
-				{ completedNotes } completed
+				{completedNotes} completed
 				<Divider type="vertical" />
-				{ totalNotes } total
+				{totalNotes} total
 			</Divider>
 
 			<List
