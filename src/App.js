@@ -27,7 +27,7 @@ const initialState = {
 
 const reducer = (state, action) => {
 	const notes = [...state.notes];
-	const index = notes.findIndex((n) => n.id == action.id);
+	const index = notes.findIndex((n) => n.id === action.id);
 
 	switch (action.type) {
 		case "SET_NOTES":
@@ -68,7 +68,7 @@ const reducer = (state, action) => {
 			return { ...state, notes: action.notes, loading: false };
 
 		case "DELETE_NOTE":
-			const i = state.notes.findIndex((n) => n.id == action.id);
+			const i = state.notes.findIndex((n) => n.id === action.id);
 
 			const newNotes = [
 				...state.notes.slice(0, i),
@@ -170,7 +170,7 @@ const App = () => {
 	// adding ! to note
 	const excitingNote = async (item) => {
 		const notes = [...state.notes];
-		const index = notes.findIndex((n) => n.id == item.id);
+		const index = notes.findIndex((n) => n.id === item.id);
 		const excitingNote = {
 			name: item.name + "!",
 			description: item.description,
