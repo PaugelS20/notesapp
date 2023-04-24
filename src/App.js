@@ -65,7 +65,7 @@ const reducer = (state, action) => {
 			// const x = noteS.findIndex((n) => n.id == action.id);
 			// if (CLIENT_ID === index.clientId) return;
 			// notes[index].name = !notes.name;
-			return { ...state, notes: action.notes, loading: false,  };
+			return { ...state, notes: action.notes, loading: false };
 
 		case "DELETE_NOTE":
 			const i = state.notes.findIndex((n) => n.id == action.id);
@@ -165,14 +165,6 @@ const App = () => {
 		} catch (err) {
 			console.error(err);
 		}
-	};
-
-	const makeImportant = (item) => {
-		const notes = [...state.notes];
-		const index = state.notes.findIndex((n) => n.id === item.id);
-		const importantNote = { name: item.name + "!!" };
-		notes[index] = importantNote;
-		dispatch({ type: "ADD_EXCLAMATION", notes });
 	};
 
 	// adding ! to note
